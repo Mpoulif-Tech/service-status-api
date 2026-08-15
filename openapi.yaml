@@ -1,0 +1,98 @@
+openapi: 3.1.0
+info:
+  title: Service Status API
+  version: 1.0.0
+  description: Manage monitored services and operational incidents.
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      summary: Check API health
+      responses:
+        "200":
+          description: API is available
+  /api/services:
+    get:
+      summary: List services
+      responses:
+        "200":
+          description: Service collection
+    post:
+      summary: Create a service
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ServiceInput"
+      responses:
+        "201":
+          description: Service created
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /api/incidents:
+    get:
+      summary: List incidents
+      parameters:
+        - in: query
+          name: serviceId
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { type: string, enum: [open, resolved] }
+      responses:
+        "200":
+          description: Incident collection
+    post:
+      summary: Create an incident
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IncidentInput"
+      responses:
+        "201":
+          description: Incident created
+        "404":
+          description: Referenced service not found
+        "422":
+          $ref: "#/components/responses/ValidationError"
+  /api/incidents/{incidentId}/resolve:
+    patch:
+      summary: Resolve an incident
+      parameters:
+        - in: path
+          name: incidentId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Incident resolved
+        "404":
+          description: Incident not found
+  /api/summary:
+    get:
+      summary: Get current service status summary
+      responses:
+        "200":
+          description: Operational summary
+components:
+  schemas:
+    ServiceInput:
+      type: object
+      required: [name, url]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 80 }
+        url: { type: string, format: uri }
+    IncidentInput:
+      type: object
+      required: [serviceId, title, severity]
+      properties:
+        serviceId: { type: string }
+        title: { type: string, minLength: 4, maxLength: 120 }
+        severity: { type: string, enum: [low, medium, high, critical] }
+  responses:
+    ValidationError:
+      description: Input failed validation
